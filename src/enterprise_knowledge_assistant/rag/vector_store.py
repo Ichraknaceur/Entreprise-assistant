@@ -4,15 +4,59 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import urlparse
 
-from pymilvus import MilvusClient
+from pymilvus import DataType, MilvusClient
 
 from enterprise_knowledge_assistant.core.config import get_settings
 
 if TYPE_CHECKING:
     from enterprise_knowledge_assistant.core.config import Settings
+
+
+class MilvusSchemaProtocol(Protocol):
+    """Protocol for the Milvus schema builder used by collection creation."""
+
+    def add_field(self, **field_kwargs: object) -> None:
+        """Add a field definition to the schema."""
+
+
+class MilvusIndexParamsProtocol(Protocol):
+    """Protocol for the Milvus index params builder."""
+
+    def add_index(self, **index_kwargs: object) -> None:
+        """Add an index definition."""
+
+
+class MilvusCollectionClientProtocol(Protocol):
+    """Protocol for the subset of Milvus client APIs used by this project."""
+
+    def list_collections(self) -> list[str]:
+        """Return the available collection names."""
+
+    def has_collection(self, *, collection_name: str) -> bool:
+        """Return whether a collection exists."""
+
+    def create_schema(
+        self,
+        *,
+        auto_id: bool,
+        enable_dynamic_fields: bool,
+    ) -> MilvusSchemaProtocol:
+        """Create a schema builder."""
+
+    def prepare_index_params(self) -> MilvusIndexParamsProtocol:
+        """Create an index parameter builder."""
+
+    def create_collection(
+        self,
+        *,
+        collection_name: str,
+        schema: MilvusSchemaProtocol,
+        index_params: MilvusIndexParamsProtocol,
+    ) -> None:
+        """Create a collection."""
 
 
 @dataclass(slots=True, frozen=True)
@@ -62,6 +106,68 @@ def create_milvus_client(*, uri: str, token: str | None = None) -> MilvusClient:
     if token:
         return MilvusClient(uri=uri, token=token)
     return MilvusClient(uri=uri)
+
+
+def ensure_milvus_collection(
+    client: MilvusCollectionClientProtocol,
+    settings: Settings | None = None,
+) -> None:
+    """Create the configured Milvus collection if it does not yet exist."""
+    resolved_settings = settings or get_settings()
+    collection_name = resolved_settings.milvus_collection_name
+    if client.has_collection(collection_name=collection_name):
+        return
+
+    schema = client.create_schema(auto_id=False, enable_dynamic_fields=False)
+    schema.add_field(
+        field_name="id",
+        datatype=DataType.VARCHAR,
+        is_primary=True,
+        max_length=512,
+    )
+    schema.add_field(
+        field_name="vector",
+        datatype=DataType.FLOAT_VECTOR,
+        dim=resolved_settings.milvus_embedding_dimension,
+    )
+    schema.add_field(
+        field_name="document",
+        datatype=DataType.VARCHAR,
+        max_length=255,
+    )
+    schema.add_field(
+        field_name="category",
+        datatype=DataType.VARCHAR,
+        max_length=100,
+    )
+    schema.add_field(
+        field_name="path",
+        datatype=DataType.VARCHAR,
+        max_length=512,
+    )
+    schema.add_field(
+        field_name="title",
+        datatype=DataType.VARCHAR,
+        max_length=255,
+    )
+    schema.add_field(
+        field_name="text",
+        datatype=DataType.VARCHAR,
+        max_length=8192,
+    )
+
+    index_params = client.prepare_index_params()
+    index_params.add_index(
+        field_name="vector",
+        index_type="AUTOINDEX",
+        metric_type="COSINE",
+    )
+
+    client.create_collection(
+        collection_name=collection_name,
+        schema=schema,
+        index_params=index_params,
+    )
 
 
 def _resolve_milvus_uri(settings: Settings) -> str:
