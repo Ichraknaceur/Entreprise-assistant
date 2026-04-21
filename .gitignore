@@ -1,0 +1,16 @@
+.env
+.DS_Store
+.pytest_cache/
+.ruff_cache/
+.venv/
+.coverage
+coverage.xml
+dist/
+build/
+htmlcov/
+site/
+*.egg-info/
+storage/chroma/*
+!storage/chroma/.gitkeep
+__pycache__/
+*.pyc

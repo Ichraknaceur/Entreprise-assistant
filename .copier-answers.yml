@@ -1,0 +1,9 @@
+# Changes here will be overwritten by Copier
+_commit: a99d2a4
+_src_path: gh:inokufu/python-project-template
+author_email: ichraknaceurr@gmail.com
+author_name: Ichrak Ennaceur
+min_python_version: '3.14'
+package_name: enterprise_knowledge_assistant
+project_description: A Python project
+project_name: Enterprise Knowledge Assistant

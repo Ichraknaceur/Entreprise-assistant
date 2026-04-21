@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+  workflow_dispatch:
+# Uncomment to activate regular checks:
+#  schedule:
+#    - cron: "0 0 * * 0"  # Weekly on Sundays
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Cache prek
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/prek
+          key: prek-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run prek checks
+        run: make precommit
+
+      - name: Lint GitHub Actions
+        uses: eifinger/actionlint-action@v1
+
+  test:
+    name: Test Python
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        id: setup-uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Install dependencies
+        run: make install
+
+      - name: Run tests with coverage
+        run: make test
+
+      - name: Upload coverage report as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          retention-days: 7
+          path: |
+            htmlcov/
+            coverage.xml
+
+  greeting:
+    name: Greet first-time contributors
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'issues'
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          pr-message: 'Hello @${{ github.actor }}, thank you for submitting a PR! We will review it soon.'
+          issue-message: |
+            Hello @${{ github.actor }}, thank you for your interest in our project!
+            If this is a bug report, please provide screenshots and steps to reproduce your issue.
