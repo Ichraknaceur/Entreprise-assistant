@@ -10,7 +10,7 @@ build/
 htmlcov/
 site/
 *.egg-info/
-storage/chroma/*
-!storage/chroma/.gitkeep
+storage/milvus/*
+!storage/milvus/.gitkeep
 __pycache__/
 *.pyc

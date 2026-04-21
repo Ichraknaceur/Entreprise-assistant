@@ -42,9 +42,7 @@ def _build_document(markdown_path: Path, base_dir: Path) -> KnowledgeDocument:
     return KnowledgeDocument(
         document=markdown_path.name,
         category=(
-            relative_path.parts[0]
-            if len(relative_path.parts) > 1
-            else "uncategorized"
+            relative_path.parts[0] if len(relative_path.parts) > 1 else "uncategorized"
         ),
         path=relative_path.as_posix(),
         title=_extract_title(content=content, fallback=markdown_path.stem),

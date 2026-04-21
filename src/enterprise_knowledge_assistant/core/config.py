@@ -27,7 +27,12 @@ class Settings(BaseSettings):
     reload: bool = True
 
     data_dir: Path = Field(default=Path("data/sample_docs"))
-    vector_store_dir: Path = Field(default=Path("storage/chroma"))
+    vector_store_dir: Path = Field(default=Path("storage/milvus"))
+    vector_db_provider: str = "milvus"
+    milvus_uri: str | None = None
+    milvus_token: str | None = None
+    milvus_collection_name: str = "knowledge_chunks"
+    milvus_embedding_dimension: int = 384
 
     embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
     llm_provider: str = "mock"
