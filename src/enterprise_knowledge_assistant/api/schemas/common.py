@@ -13,3 +13,12 @@ class HealthResponse(APIModel):
     """Health check response payload."""
 
     status: str
+
+
+class DatabaseHealthResponse(APIModel):
+    """Vector database health response payload."""
+
+    status: str
+    provider: str
+    collection_name: str
+    collection_exists: bool
