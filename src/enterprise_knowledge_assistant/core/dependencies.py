@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from enterprise_knowledge_assistant.core.config import get_settings
 from enterprise_knowledge_assistant.rag.generator.factory import get_generator
+from enterprise_knowledge_assistant.services.indexing_service import IndexingService
 from enterprise_knowledge_assistant.services.query_service import QueryService
 
 if TYPE_CHECKING:
@@ -18,6 +19,13 @@ def _get_generator() -> BaseGenerator:
     """Build the configured answer generator."""
     settings = get_settings()
     return get_generator(settings)
+
+
+@lru_cache
+def get_indexing_service() -> IndexingService:
+    """Build the indexing service."""
+    settings = get_settings()
+    return IndexingService(settings=settings)
 
 
 @lru_cache
