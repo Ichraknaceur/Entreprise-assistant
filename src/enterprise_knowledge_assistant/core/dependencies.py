@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from enterprise_knowledge_assistant.core.config import get_settings
 from enterprise_knowledge_assistant.rag.generator.factory import get_generator
+from enterprise_knowledge_assistant.rag.retriever import retrieve_context
 from enterprise_knowledge_assistant.services.indexing_service import IndexingService
 from enterprise_knowledge_assistant.services.query_service import QueryService
 
@@ -31,4 +32,7 @@ def get_indexing_service() -> IndexingService:
 @lru_cache
 def get_query_service() -> QueryService:
     """Build the query service."""
-    return QueryService(generator=_get_generator())
+    return QueryService(
+        generator=_get_generator(),
+        retriever=retrieve_context,
+    )
