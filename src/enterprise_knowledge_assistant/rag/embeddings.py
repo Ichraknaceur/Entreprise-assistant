@@ -30,10 +30,10 @@ class EmbeddingModelProtocol(Protocol):
 
 
 @lru_cache
-def get_embedding_model(settings: Settings | None = None) -> SentenceTransformer:
+def get_embedding_model(model_name: str | None = None) -> SentenceTransformer:
     """Return the configured sentence-transformers model."""
-    resolved_settings = settings or get_settings()
-    return SentenceTransformer(resolved_settings.embedding_model_name)
+    resolved_model_name = model_name or get_settings().embedding_model_name
+    return SentenceTransformer(resolved_model_name)
 
 
 def build_embeddings(
@@ -46,7 +46,9 @@ def build_embeddings(
     if not chunks:
         return []
 
-    resolved_model = model or get_embedding_model(settings)
+    resolved_model = model or get_embedding_model(
+        (settings or get_settings()).embedding_model_name,
+    )
     raw_embeddings = resolved_model.encode(
         [chunk.text for chunk in chunks],
         normalize_embeddings=True,
