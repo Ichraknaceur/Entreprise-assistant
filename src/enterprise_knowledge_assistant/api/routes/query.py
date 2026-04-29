@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from enterprise_knowledge_assistant.api.schemas.query import (  # noqa: TC001
     QueryRequest,
@@ -24,4 +24,7 @@ def query_knowledge_base(
     query_service: Annotated[QueryService, Depends(get_query_service)],
 ) -> QueryResponse:
     """Return an answer backed by retrieved sources."""
-    return query_service.query(request)
+    try:
+        return query_service.query(request)
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc

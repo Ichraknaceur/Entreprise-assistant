@@ -38,6 +38,7 @@ class Settings(BaseSettings):
     llm_provider: str = "mock"
     llm_model_name: str = "mock-generator"
     openai_api_key: str | None = None
+    openai_model_name: str = "gpt-4.1-mini"
 
 
 @lru_cache

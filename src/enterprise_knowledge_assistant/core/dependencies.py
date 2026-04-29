@@ -12,14 +12,21 @@ from enterprise_knowledge_assistant.services.indexing_service import IndexingSer
 from enterprise_knowledge_assistant.services.query_service import QueryService
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from enterprise_knowledge_assistant.rag.generator.base import BaseGenerator
 
 
 @lru_cache
-def _get_generator() -> BaseGenerator:
+def _get_generator(provider: str | None = None) -> BaseGenerator:
     """Build the configured answer generator."""
     settings = get_settings()
-    return get_generator(settings)
+    return get_generator(settings, provider=provider)
+
+
+def _get_generator_factory() -> Callable[[str | None], BaseGenerator]:
+    """Return a cached generator factory."""
+    return _get_generator
 
 
 @lru_cache
@@ -32,7 +39,9 @@ def get_indexing_service() -> IndexingService:
 @lru_cache
 def get_query_service() -> QueryService:
     """Build the query service."""
+    settings = get_settings()
     return QueryService(
-        generator=_get_generator(),
+        default_provider=settings.llm_provider,
+        generator_factory=_get_generator_factory(),
         retriever=retrieve_context,
     )
