@@ -48,3 +48,47 @@ def test_query_returns_retrieved_sources() -> None:
             },
         ],
     }
+
+
+def test_query_accepts_provider_override() -> None:
+    """The query endpoint should accept a supported provider override."""
+    app.dependency_overrides[get_query_service] = FakeQueryService
+
+    try:
+        response = client.post(
+            "/query",
+            json={
+                "question": "What is the remote work policy?",
+                "provider": "openai",
+            },
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 200
+
+
+def test_query_returns_503_for_generator_configuration_errors() -> None:
+    """The query endpoint should surface generator configuration failures."""
+
+    class FailingQueryService:
+        """Fake query service raising a configuration error."""
+
+        def query(self, request: object) -> QueryResponse:
+            """Raise the expected configuration error."""
+            del request
+            msg = "OpenAI API key is not configured."
+            raise ValueError(msg)
+
+    app.dependency_overrides[get_query_service] = FailingQueryService
+
+    try:
+        response = client.post(
+            "/query",
+            json={"question": "What is the remote work policy?"},
+        )
+    finally:
+        app.dependency_overrides.clear()
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "OpenAI API key is not configured."}
