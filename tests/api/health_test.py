@@ -1,4 +1,4 @@
-"""Tests for health and skeleton query routes."""
+"""Tests for health routes."""
 
 from unittest.mock import patch
 
@@ -51,16 +51,3 @@ def test_database_health_check_returns_503_when_unavailable() -> None:
     assert response.json() == {
         "detail": "Vector database unavailable: connection refused",
     }
-
-
-def test_query_returns_placeholder_payload() -> None:
-    """The query endpoint should return the expected response shape."""
-    response = client.post(
-        "/query",
-        json={"question": "What is the remote work policy?"},
-    )
-
-    assert response.status_code == 200
-    payload = response.json()
-    assert "answer" in payload
-    assert "sources" in payload

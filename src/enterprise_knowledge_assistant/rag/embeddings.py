@@ -62,3 +62,21 @@ def build_embeddings(
         )
         for chunk, embedding in zip(chunks, embeddings, strict=True)
     ]
+
+
+def build_query_embedding(
+    question: str,
+    *,
+    settings: Settings | None = None,
+    model: EmbeddingModelProtocol | None = None,
+) -> list[float]:
+    """Create a normalized embedding vector for a user question."""
+    resolved_model = model or get_embedding_model(
+        (settings or get_settings()).embedding_model_name,
+    )
+    raw_embedding = resolved_model.encode(
+        [question],
+        normalize_embeddings=True,
+    )
+    embedding = cast("Sequence[Sequence[float]]", raw_embedding)[0]
+    return [float(value) for value in embedding]
