@@ -12,6 +12,16 @@ if TYPE_CHECKING:
 class BaseGenerator(ABC):
     """Interface for pluggable answer generators."""
 
+    @property
+    @abstractmethod
+    def provider_name(self) -> str:
+        """Return the provider name."""
+
+    @property
+    @abstractmethod
+    def model_name(self) -> str:
+        """Return the model name."""
+
     @abstractmethod
     def generate(self, question: str, contexts: Sequence[str]) -> str:
         """Generate an answer from the provided contexts."""

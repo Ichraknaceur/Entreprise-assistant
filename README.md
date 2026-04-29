@@ -9,8 +9,8 @@
 
 A production-oriented RAG project that simulates an internal enterprise
 knowledge assistant. The system ingests internal company documentation stored
-as markdown, prepares retrieval-ready chunks, and exposes a clean FastAPI
-backend that will later be connected to Milvus and a pluggable LLM provider.
+as markdown, indexes them in Milvus, retrieves grounded context, and exposes a
+clean FastAPI backend with pluggable LLM generation and Langfuse tracing.
 
 ## Why this project
 
@@ -21,6 +21,7 @@ not a notebook demo. The goal is to show:
 - modular RAG pipeline design
 - document ingestion from structured internal docs
 - source-aware answer generation contracts
+- observability and tracing with Langfuse
 - testing, linting, and development discipline
 - readiness for future deployment and feature branching
 
@@ -28,28 +29,29 @@ not a notebook demo. The goal is to show:
 
 The project is intentionally being built in small, production-minded steps.
 
-- `FastAPI` app skeleton is working
-- `GET /health` endpoint is implemented
-- `POST /query` contract is implemented with a placeholder generator
+- `FastAPI` backend is working
+- `GET /health`, `GET /health/database`, `POST /admin/index`, and `POST /query` are implemented
 - sample enterprise markdown corpus is present under `data/sample_docs/`
-- markdown document loader is implemented
-- chunking pipeline is implemented and tested
-- Milvus, embeddings, retrieval, and grounded generation are planned next
+- markdown loading, chunking, embeddings, Milvus ingestion, and retrieval are implemented
+- `mock` and `openai` generation are supported
+- Langfuse observability is integrated for the `/query` flow
 
 ## Implemented so far
 
 | Area | Status | Notes |
 | --- | --- | --- |
 | API skeleton | Done | App wiring, routers, schemas, dependency layer |
-| Health endpoint | Done | `GET /health` returns service status |
-| Query contract | Done | `POST /query` returns the response shape we will keep |
+| Health endpoints | Done | `GET /health` and `GET /health/database` |
+| Query flow | Done | `POST /query` retrieves grounded sources and supports provider override |
+| Indexing flow | Done | `POST /admin/index` runs load -> chunk -> embed -> ingest |
 | Sample knowledge base | Done | HR, IT, and compliance markdown documents |
 | Markdown loader | Done | Extracts `document`, `category`, `path`, `title`, `content` |
 | Chunker | Done | Produces traceable retrieval chunks with overlap |
-| Vector DB integration | Planned | Milvus will be used next |
-| Embeddings | Planned | `sentence-transformers` target |
-| Retrieval | Planned | Top-k retrieval over vectorized chunks |
-| Real answer generation | Planned | Provider abstraction already scaffolded |
+| Vector DB integration | Done | Milvus Lite locally, Milvus-ready architecture |
+| Embeddings | Done | `sentence-transformers` for chunk and query embeddings |
+| Retrieval | Done | Top-k semantic retrieval over indexed chunks |
+| Real answer generation | Done | `mock` and `openai` providers |
+| Observability | Done | Langfuse spans for query, retrieval, and generation |
 
 ## Architecture
 
@@ -57,12 +59,24 @@ The project is intentionally being built in small, production-minded steps.
 flowchart LR
     A["Markdown documents"] --> B["Loader"]
     B --> C["Chunker"]
-    C --> D["Embeddings (planned)"]
-    D --> E["Milvus (planned)"]
-    E --> F["Retriever (planned)"]
+    C --> D["Embeddings"]
+    D --> E["Milvus"]
+    E --> F["Retriever"]
     F --> G["Generator abstraction"]
     G --> H["FastAPI /query"]
+    H --> I["Langfuse traces"]
 ```
+
+## Langfuse observability
+
+The query flow is instrumented with Langfuse so the project can trace:
+
+- the incoming user question
+- retrieval spans and matched source documents
+- LLM generation spans
+- provider and model selection per request
+
+![Langfuse Observability UI](https://langfuse.com/_next/static/media/observability-ui.7ec35254.png)
 
 <details>
 <summary><strong>Current project structure</strong></summary>
@@ -110,6 +124,21 @@ uv sync
 make run-api
 ```
 
+### Configure environment
+
+Copy the example file and set the values you need:
+
+```bash
+cp .env.example .env
+```
+
+Important variables:
+
+- `OPENAI_API_KEY` for OpenAI-backed answers
+- `OPENAI_MODEL_NAME` for the OpenAI model selection
+- `LANGFUSE_PUBLIC_KEY` and `LANGFUSE_SECRET_KEY` for Langfuse tracing
+- `LANGFUSE_BASE_URL` for your Langfuse region
+
 ### Run tests
 
 ```bash
@@ -134,13 +163,27 @@ Returns a simple health payload:
 }
 ```
 
+### `GET /health/database`
+
+Returns the status of the configured Milvus vector store.
+
+### `POST /admin/index`
+
+Runs the full local indexing pipeline:
+
+- load markdown documents
+- chunk documents
+- build embeddings
+- ingest records into Milvus
+
 ### `POST /query`
 
 Current request contract:
 
 ```json
 {
-  "question": "What is the remote work policy?"
+  "question": "What is the remote work policy?",
+  "provider": "openai"
 }
 ```
 
@@ -148,18 +191,15 @@ Current response shape:
 
 ```json
 {
-  "answer": "Generation is scaffolded but not implemented yet.",
+  "answer": "Employees may work remotely up to three days per week with manager approval.",
   "sources": [
     {
-      "document": "not_implemented_yet",
-      "snippet": "Retrieval pipeline will provide source-backed snippets here."
+      "document": "remote_work_policy.md",
+      "snippet": "Employees may work remotely up to three days per week..."
     }
   ]
 }
 ```
-
-The important point here is that the response contract is already stable even
-though the retrieval and generation internals are still being connected.
 
 ## Tooling
 
@@ -175,6 +215,7 @@ Project documentation lives in [`docs/`](docs/) and includes:
 - architecture overview
 - current implementation status
 - API contract
+- Langfuse observability notes
 - development workflow for future feature branches
 
 ## Roadmap
@@ -182,13 +223,12 @@ Project documentation lives in [`docs/`](docs/) and includes:
 <details>
 <summary><strong>Next milestones</strong></summary>
 
-- integrate Milvus as the open-source vector database
-- add embeddings generation for chunks
-- implement ingestion/indexing pipeline
-- implement retrieval and source-backed query flow
-- connect a real LLM provider through the generator abstraction
+- refine refusal behavior when context is weak
+- expand Langfuse from tracing to prompt management and evaluations
 - add Streamlit UI
 - add Docker and deployment configuration
+- add `/upload` and metadata filtering
+- add evaluation scripts and experiments
 
 </details>
 
@@ -198,9 +238,9 @@ The repository will use a simple branch strategy after this initial baseline:
 
 - `main` stays stable
 - each new feature gets its own branch, for example:
-  - `feature/milvus-ingestion`
-  - `feature/retriever-pipeline`
+  - `feature/refusal-behavior`
+  - `feature/langfuse-evals`
   - `feature/streamlit-ui`
 
-This first push is intended to establish a clean baseline before continuing
-feature-by-feature.
+This repository is intentionally evolving feature-by-feature so the engineering
+story remains easy to follow in code reviews, PRs, and portfolio walkthroughs.

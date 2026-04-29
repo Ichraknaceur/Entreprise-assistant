@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     llm_model_name: str = "mock-generator"
     openai_api_key: str | None = None
     openai_model_name: str = "gpt-4.1-mini"
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_base_url: str = "https://cloud.langfuse.com"
+    langfuse_environment: str = "development"
 
 
 @lru_cache

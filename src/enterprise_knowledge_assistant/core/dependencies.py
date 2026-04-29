@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from enterprise_knowledge_assistant.core.config import get_settings
+from enterprise_knowledge_assistant.core.observability import get_observability_client
 from enterprise_knowledge_assistant.rag.generator.factory import get_generator
 from enterprise_knowledge_assistant.rag.retriever import retrieve_context
 from enterprise_knowledge_assistant.services.indexing_service import IndexingService
@@ -44,4 +45,5 @@ def get_query_service() -> QueryService:
         default_provider=settings.llm_provider,
         generator_factory=_get_generator_factory(),
         retriever=retrieve_context,
+        observability_client=get_observability_client(settings),
     )

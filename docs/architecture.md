@@ -5,7 +5,7 @@
 The current codebase follows a simple layered structure:
 
 - API layer for HTTP routes and schemas
-- core layer for configuration and dependencies
+- core layer for configuration, observability, and dependencies
 - service layer for orchestration
 - RAG layer for ingestion, chunking, retrieval, and generation concerns
 
@@ -38,6 +38,7 @@ src/enterprise_knowledge_assistant/
 - centralizes settings
 - wires shared dependencies
 - configures logging
+- hosts Langfuse observability integration
 
 ### `services/`
 
@@ -48,19 +49,28 @@ src/enterprise_knowledge_assistant/
 
 - loads markdown documents
 - chunks documents into retrieval-ready units
-- will later handle embeddings, vector storage, retrieval, and prompts
+- handles embeddings, vector storage, retrieval, prompts, and generators
 
 ## Current flow
 
 ```text
-Markdown files -> Loader -> Chunker -> Future embeddings/vector store
-                                       -> Future retriever
-                                       -> Generator abstraction
-                                       -> FastAPI /query
+Markdown files
+  -> Loader
+  -> Chunker
+  -> Embeddings
+  -> Milvus
+
+User question
+  -> Query embedding
+  -> Milvus retriever
+  -> Generator abstraction (mock/openai)
+  -> FastAPI /query
+  -> Langfuse tracing
 ```
 
-## Why Milvus next
+## Why this structure works
 
-The project is intentionally moving toward an open-source vector database
-instead of a proprietary managed service. Milvus fits that direction while
-still giving the project a serious production-oriented feel.
+- Milvus keeps the vector layer open-source and production-oriented
+- provider abstraction keeps generation extensible
+- Langfuse adds observability without tightly coupling business logic to one UI
+- service-layer orchestration keeps API routes thin and testable
