@@ -6,6 +6,7 @@ nav:
   - Current Status: current-status.md
   - Architecture: architecture.md
   - API Overview: api.md
+  - Langfuse Observability: langfuse.md
   - Development Workflow: development-workflow.md
   - Changelog: CHANGELOG.md
   - Contributing: CONTRIBUTING.md

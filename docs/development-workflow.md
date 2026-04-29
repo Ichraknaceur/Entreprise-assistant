@@ -19,10 +19,9 @@ dedicated branches.
 
 Recommended naming:
 
-- `feature/milvus-integration`
-- `feature/embeddings-pipeline`
-- `feature/retriever`
-- `feature/query-grounding`
+- `feature/openai-generator`
+- `feature/langfuse-observability`
+- `feature/refusal-behavior`
 - `feature/streamlit-ui`
 
 ## Suggested workflow

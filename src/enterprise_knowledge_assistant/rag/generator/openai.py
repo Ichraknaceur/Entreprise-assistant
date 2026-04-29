@@ -45,6 +45,16 @@ class OpenAIGenerator(BaseGenerator):
         self._model_name = model_name
         self._client = client or OpenAI(api_key=api_key).responses
 
+    @property
+    def provider_name(self) -> str:
+        """Return the provider name."""
+        return "openai"
+
+    @property
+    def model_name(self) -> str:
+        """Return the configured OpenAI model name."""
+        return self._model_name
+
     def generate(self, question: str, contexts: Sequence[str]) -> str:
         """Generate an answer grounded in retrieved context."""
         response = self._client.create(

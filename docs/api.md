@@ -16,35 +16,70 @@ Example response:
 
 ### `POST /query`
 
-Accepts a natural language question.
+Accepts a natural language question and an optional provider override.
 
 Example request:
 
 ```json
 {
-  "question": "What is the remote work policy?"
+  "question": "What is the remote work policy?",
+  "provider": "openai"
 }
 ```
 
-Current example response:
+Example response:
 
 ```json
 {
-  "answer": "Generation is scaffolded but not implemented yet. Received question: 'What is the remote work policy?'. Retrieved context chunks: 0.",
+  "answer": "Employees may work remotely up to three days per week with manager approval.",
   "sources": [
     {
-      "document": "not_implemented_yet",
-      "snippet": "Retrieval pipeline will provide source-backed snippets here."
+      "document": "remote_work_policy.md",
+      "snippet": "Employees may work remotely up to three days per week..."
     }
   ]
 }
 ```
 
-## Important note
+Supported providers today:
 
-At this stage, `/query` is intentionally returning a placeholder answer. The
-goal so far was to lock the API shape before plugging in the real retrieval and
-generation pipeline.
+- `mock`
+- `openai`
 
-This lets the project evolve feature-by-feature without redesigning the public
-contract every time.
+If no grounded context is retrieved, the API returns a refusal-style answer
+instead of inventing a response.
+
+### `GET /health/database`
+
+Returns vector store health information for the configured Milvus backend.
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "provider": "milvus",
+  "collection_name": "knowledge_chunks",
+  "collection_exists": true
+}
+```
+
+### `POST /admin/index`
+
+Triggers the end-to-end indexing flow:
+
+1. load markdown documents
+2. chunk them
+3. create embeddings
+4. ingest records into Milvus
+
+Example response:
+
+```json
+{
+  "status": "ok",
+  "documents_count": 15,
+  "chunks_count": 42,
+  "inserted_count": 42
+}
+```

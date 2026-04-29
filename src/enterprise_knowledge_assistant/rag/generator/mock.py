@@ -13,6 +13,16 @@ if TYPE_CHECKING:
 class MockGenerator(BaseGenerator):
     """Return a predictable placeholder response."""
 
+    @property
+    def provider_name(self) -> str:
+        """Return the mock provider name."""
+        return "mock"
+
+    @property
+    def model_name(self) -> str:
+        """Return the mock model name."""
+        return "mock-generator"
+
     def generate(self, question: str, contexts: Sequence[str]) -> str:
         """Generate a placeholder answer for early development."""
         context_count = len(contexts)
