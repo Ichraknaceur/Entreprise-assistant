@@ -74,21 +74,27 @@ def get_observability_client(
     settings: Settings | None = None,
 ) -> ObservabilityClientProtocol:
     """Return the configured observability client or a no-op fallback."""
+    langfuse_client = get_langfuse_client(settings)
+    if langfuse_client is None:
+        return _NullObservabilityClient()
+
+    return cast("ObservabilityClientProtocol", langfuse_client)
+
+
+def get_langfuse_client(settings: Settings | None = None) -> Langfuse | None:
+    """Return the configured Langfuse client or `None` if disabled."""
     resolved_settings = settings or get_settings()
     if not (
         resolved_settings.langfuse_public_key and resolved_settings.langfuse_secret_key
     ):
-        return _NullObservabilityClient()
+        return None
 
-    return cast(
-        "ObservabilityClientProtocol",
-        _build_langfuse_client(
-            public_key=resolved_settings.langfuse_public_key,
-            secret_key=resolved_settings.langfuse_secret_key,
-            base_url=resolved_settings.langfuse_base_url,
-            environment=resolved_settings.langfuse_environment,
-            release=resolved_settings.app_version,
-        ),
+    return _build_langfuse_client(
+        public_key=resolved_settings.langfuse_public_key,
+        secret_key=resolved_settings.langfuse_secret_key,
+        base_url=resolved_settings.langfuse_base_url,
+        environment=resolved_settings.langfuse_environment,
+        release=resolved_settings.app_version,
     )
 
 

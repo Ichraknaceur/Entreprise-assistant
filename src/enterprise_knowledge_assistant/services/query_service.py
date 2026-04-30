@@ -87,7 +87,11 @@ class QueryService:
                         "question": request.question,
                         "contexts": contexts,
                     },
-                    metadata={"provider": generator.provider_name},
+                    metadata={
+                        "provider": generator.provider_name,
+                        "prompt_name": getattr(generator, "prompt_name", None),
+                        "prompt_label": getattr(generator, "prompt_label", None),
+                    },
                 ) as generation_observation:
                     generated_answer = generator.generate(
                         question=request.question,

@@ -43,6 +43,8 @@ class Settings(BaseSettings):
     langfuse_secret_key: str | None = None
     langfuse_base_url: str = "https://cloud.langfuse.com"
     langfuse_environment: str = "development"
+    langfuse_prompt_label: str = "production"
+    langfuse_openai_prompt_name: str = "enterprise-rag-answer-chat"
 
 
 @lru_cache

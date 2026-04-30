@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
+from enterprise_knowledge_assistant.core.observability import get_langfuse_client
 from enterprise_knowledge_assistant.rag.generator.mock import MockGenerator
 from enterprise_knowledge_assistant.rag.generator.openai import OpenAIGenerator
 
 if TYPE_CHECKING:
     from enterprise_knowledge_assistant.core.config import Settings
+    from enterprise_knowledge_assistant.core.prompt_management import (
+        LangfusePromptClientProtocol,
+    )
     from enterprise_knowledge_assistant.rag.generator.base import BaseGenerator
 
 
@@ -28,6 +32,11 @@ def get_generator(
         return OpenAIGenerator(
             api_key=settings.openai_api_key,
             model_name=settings.openai_model_name,
+            settings=settings,
+            langfuse_client=cast(
+                "LangfusePromptClientProtocol | None",
+                get_langfuse_client(settings),
+            ),
         )
     msg = f"Unsupported LLM provider: {resolved_provider}"
     raise ValueError(msg)
