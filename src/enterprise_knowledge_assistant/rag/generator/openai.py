@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Protocol, cast
 
 from openai import OpenAI
 
+from enterprise_knowledge_assistant.core.prompt_management import (
+    resolve_openai_chat_prompt,
+)
 from enterprise_knowledge_assistant.rag.generator.base import BaseGenerator
-from enterprise_knowledge_assistant.rag.prompts import SYSTEM_PROMPT, build_user_prompt
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+    from openai.types.responses.response_input_param import ResponseInputParam
+
+    from enterprise_knowledge_assistant.core.config import Settings
+    from enterprise_knowledge_assistant.core.prompt_management import (
+        LangfusePromptClientProtocol,
+    )
 
 
 class OpenAIResponseProtocol(Protocol):
@@ -26,7 +35,7 @@ class OpenAIResponsesClientProtocol(Protocol):
         self,
         *,
         model: str,
-        input: list[dict[str, object]],  # noqa: A002
+        input: object,  # noqa: A002
     ) -> OpenAIResponseProtocol:
         """Create a model response."""
 
@@ -39,11 +48,15 @@ class OpenAIGenerator(BaseGenerator):
         *,
         api_key: str,
         model_name: str,
+        settings: Settings | None = None,
         client: OpenAIResponsesClientProtocol | None = None,
+        langfuse_client: LangfusePromptClientProtocol | None = None,
     ) -> None:
         """Initialize the generator with an API key and model name."""
         self._model_name = model_name
+        self._settings = settings
         self._client = client or OpenAI(api_key=api_key).responses
+        self._langfuse_client = langfuse_client
 
     @property
     def provider_name(self) -> str:
@@ -55,24 +68,26 @@ class OpenAIGenerator(BaseGenerator):
         """Return the configured OpenAI model name."""
         return self._model_name
 
+    @property
+    def prompt_name(self) -> str | None:
+        """Return the configured Langfuse prompt name."""
+        return self._settings.langfuse_openai_prompt_name if self._settings else None
+
+    @property
+    def prompt_label(self) -> str | None:
+        """Return the configured Langfuse prompt label."""
+        return self._settings.langfuse_prompt_label if self._settings else None
+
     def generate(self, question: str, contexts: Sequence[str]) -> str:
         """Generate an answer grounded in retrieved context."""
+        resolved_prompt = resolve_openai_chat_prompt(
+            question,
+            contexts,
+            settings=self._settings,
+            client=self._langfuse_client,
+        )
         response = self._client.create(
             model=self._model_name,
-            input=[
-                {
-                    "role": "system",
-                    "content": [{"type": "input_text", "text": SYSTEM_PROMPT}],
-                },
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": build_user_prompt(question, contexts),
-                        },
-                    ],
-                },
-            ],
+            input=cast("ResponseInputParam", resolved_prompt.messages),
         )
         return response.output_text.strip()
